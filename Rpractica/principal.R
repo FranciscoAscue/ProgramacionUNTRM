@@ -46,3 +46,10 @@ mtcars |> group_by(cyl) |> summarise(n = n())
 mtcars |> arrange(desc(drat))
 
 mtcars |> distinct(cyl,am,gear)
+
+
+
+### Generar datos 
+
+write.csv(mtcars, file = "mtcars.csv")
+

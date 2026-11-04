@@ -2,7 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(openxlsx)
 
-desviacion_pearson <- function(A){
+desviacion_estardar <- function(A){
   var = 0
   x = mean(A)
   for(i in 1:length(A)){
