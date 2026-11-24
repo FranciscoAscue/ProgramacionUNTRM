@@ -2,6 +2,8 @@
 
 Construirás una app de consumo eléctrico mensual en siete lecciones. Usa el [CSV compartido](datos/consumo_electrico.csv), con valores ficticios en MWh para 12 regiones del Perú. Ejecuta los comandos con `Rscript` desde la raíz del proyecto. Abre la URL impresa en la terminal y detén cada servidor con Ctrl+C antes de abrir el siguiente. Los paquetes son `shiny`, `ggplot2`, `DBI` y `RSQLite`.
 
+Los ejemplos usan los componentes y la apariencia predeterminada del framework.
+
 ## 1. Separar la interfaz del servidor
 
 Ejecuta `Rscript r_shiny/01_layout.R`. En [01_layout.R](r_shiny/01_layout.R), la UI reserva espacios con `plotOutput()` y `tableOutput()`. `server` los llena con `renderPlot()` y `renderTable()`. Cada identificador conecta el espacio de la UI con su salida.
@@ -65,21 +67,26 @@ servidor_dashboard(output, visibles)
 
 **Práctica.** Filtra por Áncash y 2023. Comprueba que aparecen 12 registros y explica qué elimina cada filtro.
 
-## 6. Consultar SQLite desde R
+## 6. Guardar el primer registro en SQLite
 
-Ejecuta `Rscript r_shiny/06_sqlite_lectura.R`. En [06_sqlite_lectura.R](r_shiny/06_sqlite_lectura.R), `dbWriteTable()` importa el CSV a un SQLite temporal por sesión. `dbGetQuery()` recibe un parámetro para el filtro. La consulta agrupa por año y alimenta la tabla y el gráfico. `onSessionEnded()` cierra la conexión.
+Ejecuta `Rscript r_shiny/06_sqlite_ingreso.R`. En [06_sqlite_ingreso.R](r_shiny/06_sqlite_ingreso.R), `CREATE TABLE IF NOT EXISTS` define las columnas para una base nueva. La primera consulta devuelve cero filas. Los ejemplos escritos en los campos son solo sugerencias visibles.
+
+`observeEvent(input$guardar, ...)` espera el clic y lee, en ese momento, los valores del formulario de la lección 4.
 
 ```r
-resumen <- reactive({
-  dbGetQuery(con, "
-    SELECT substr(periodo, 1, 4) AS anio, SUM(consumo_mwh) AS total_mwh
-    FROM consumo WHERE region = ?
-    GROUP BY anio ORDER BY anio
-  ", params = list(input$region))
-})
+dbExecute(con,
+  "INSERT INTO consumo (region, periodo, consumo_mwh) VALUES (?, ?, ?)",
+  params = list(input$region, input$periodo, input$mwh)
+)
+datos(dbGetQuery(con, "SELECT * FROM consumo ORDER BY id"))
+mensaje("Registro guardado.")
 ```
 
-**Práctica.** Cambia de región y compara el total del resultado SQL con el dashboard de la lección 5. Prueba `AVG` en lugar de `SUM` y ajusta las etiquetas.
+`dbExecute()` inserta la fila usando los valores de `params`. `dbGetQuery()` vuelve a consultar SQLite y actualiza `datos()`, que alimenta `renderTable()`.
+
+**Práctica.** Comprueba que la tabla está vacía. Escribe Piura, `2025-01` y `190000`, guarda y observa el ID asignado. Añade otra fila y reinicia para comprobar la persistencia.
+
+La base de esta práctica es `r_shiny/ingreso_shiny.sqlite3`. Usa `INGRESO_DB` con una ruta nueva para empezar de nuevo. La lección 7 usa una base preparada con datos de ejemplo para practicar el CRUD y el dashboard.
 
 ## 7. Crear un CRUD con acciones por fila
 

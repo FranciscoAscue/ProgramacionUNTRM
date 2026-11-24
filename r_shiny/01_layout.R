@@ -5,9 +5,9 @@ datos <- subset(leer_consumo(), region == "Lima")
 # Los IDs enlazan cada espacio del UI con una salida del servidor.
 ui <- pagina(
   h2("Consumo mensual en Lima"),
-  div(class = "panel-consumo", plotOutput("evolucion")),
-  div(class = "panel-consumo", h3("Primeras 12 filas de Lima"),
-      tableOutput("tabla"))
+  plotOutput("evolucion"),
+  h3("Primeras 12 filas de Lima"),
+  tableOutput("tabla")
 )
 
 server <- function(input, output, session) {

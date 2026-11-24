@@ -1,4 +1,4 @@
-# Funciones compartidas por las tres lecciones de Shiny.
+# Funciones compartidas por las lecciones de Shiny.
 library(shiny)
 library(ggplot2)
 
@@ -21,68 +21,42 @@ tabla_visible <- function(datos) {
              "Consumo (MWh)" = numero(datos$consumo_mwh), check.names = FALSE)
 }
 
-tema_consumo <- function() {
-  theme_minimal(base_size = 13) +
-    theme(panel.grid.minor = element_blank(), plot.title.position = "plot")
-}
-
 evolucion <- function(datos) {
   mensual <- aggregate(consumo_mwh ~ periodo, datos, sum)
   mensual$mes <- as.Date(paste0(mensual$periodo, "-01"))
   ggplot(mensual, aes(mes, consumo_mwh)) +
-    geom_line(color = "#007e80", linewidth = 1) +
-    geom_point(color = "#007e80", size = 2) +
+    geom_line() +
+    geom_point() +
     scale_x_date(date_labels = "%Y-%m", breaks = scales::breaks_pretty(n = 6)) +
     scale_y_continuous(labels = numero) +
-    labs(title = "Evolución mensual", x = "Mes", y = "Consumo (MWh)") +
-    tema_consumo()
+    labs(title = "Evolución mensual", x = "Mes", y = "Consumo (MWh)")
 }
 
 por_region <- function(datos) {
   totales <- aggregate(consumo_mwh ~ region, datos, sum)
   ggplot(totales, aes(consumo_mwh, reorder(region, consumo_mwh))) +
-    geom_col(fill = "#007e80") + scale_x_continuous(labels = numero) +
-    labs(title = "Consumo por región", x = "Consumo (MWh)", y = NULL) +
-    tema_consumo()
+    geom_col() + scale_x_continuous(labels = numero) +
+    labs(title = "Consumo por región", x = "Consumo (MWh)", y = NULL)
 }
 
 por_anio <- function(datos) {
   datos$anio <- substr(datos$periodo, 1, 4)
   totales <- aggregate(consumo_mwh ~ anio, datos, sum)
   ggplot(totales, aes(anio, consumo_mwh)) +
-    geom_col(fill = "#3857a6", width = .65) + scale_y_continuous(labels = numero) +
-    labs(title = "Consumo por año", x = "Año", y = "Consumo (MWh)") +
-    tema_consumo()
+    geom_col() + scale_y_continuous(labels = numero) +
+    labs(title = "Consumo por año", x = "Año", y = "Consumo (MWh)")
 }
 
 mapa_calor <- function(datos) {
   datos$mes <- as.Date(paste0(datos$periodo, "-01"))
   ggplot(datos, aes(mes, region, fill = consumo_mwh)) +
-    geom_tile(width = 27) + scale_fill_viridis_c(option = "C", labels = numero) +
+    geom_tile(width = 27) + scale_fill_viridis_c(labels = numero) +
     scale_x_date(date_labels = "%Y-%m", breaks = scales::breaks_pretty(n = 5)) +
-    labs(title = "Consumo por región y mes", x = "Mes", y = NULL, fill = "MWh") +
-    tema_consumo()
+    labs(title = "Consumo por región y mes", x = "Mes", y = NULL, fill = "MWh")
 }
 
 pagina <- function(...) {
   fluidPage(
-    tags$head(tags$style(HTML("
-      body { background: #edf3f7; color: #182b3a; }
-      .container-fluid { max-width: 1200px; padding: 20px; }
-      h1 { margin-bottom: 8px; }
-      .panel-consumo { background: white; border: 1px solid #d5e0e9;
-        border-radius: 10px; padding: 16px; margin: 12px 0; }
-      .tabla-scroll { max-height: 360px; overflow: auto; }
-      .formulario-consumo { max-width: 660px; }
-      .indicador-shiny { background: #edf5f7; border-radius: 6px;
-        margin: 0 0 12px; padding: 10px; }
-      .indicador-shiny strong { display: block; font-size: 20px; }
-      .gestion-registros { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-        gap: 20px; align-items: start; }
-      @media (max-width: 780px) { .gestion-registros { grid-template-columns: 1fr; } }
-      #tabla_registros th:last-child, #tabla_registros td:last-child { text-align: right; }
-      .botones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-    "))),
     titlePanel("Consumo eléctrico por región"),
     p("Datos ficticios del Perú · MWh"),
     ...
@@ -90,24 +64,16 @@ pagina <- function(...) {
 }
 
 ui_dashboard <- function(regiones, opciones_anio = character()) {
-  div(class = "panel-consumo",
-    fluidRow(
-      column(6, selectInput("filtro_region", "Región",
-                            c("Todas las regiones" = "", regiones))),
-      column(6, selectInput("filtro_anio", "Año",
-                            c("Todos los años" = "", opciones_anio)))
-    ),
+  tagList(
+    selectInput("filtro_region", "Región", c("Todas las regiones" = "", regiones)),
+    selectInput("filtro_anio", "Año", c("Todos los años" = "", opciones_anio)),
     uiOutput("resumen"),
-    fluidRow(
-      column(6, plotOutput("evolucion", height = 340)),
-      column(6, plotOutput("por_region", height = 340))
-    ),
-    fluidRow(
-      column(6, plotOutput("por_anio", height = 340)),
-      column(6, plotOutput("calor", height = 340))
-    ),
+    plotOutput("evolucion"),
+    plotOutput("por_region"),
+    plotOutput("por_anio"),
+    plotOutput("calor"),
     h3("Tabla de consumo"),
-    div(class = "tabla-scroll", tableOutput("tabla"))
+    tableOutput("tabla")
   )
 }
 
@@ -115,13 +81,10 @@ servidor_dashboard <- function(output, visibles) {
   # Cualquier salida que llame a visibles() se vuelve a calcular si cambia el filtro.
   output$resumen <- renderUI({
     datos <- visibles()
-    tarjeta <- function(etiqueta, valor) {
-      column(4, div(class = "indicador-shiny", span(etiqueta), strong(numero(valor))))
-    }
-    fluidRow(
-      tarjeta("Consumo total (MWh)", sum(datos$consumo_mwh)),
-      tarjeta("Regiones", length(unique(datos$region))),
-      tarjeta("Registros", nrow(datos))
+    tags$ul(
+      tags$li("Consumo total (MWh): ", numero(sum(datos$consumo_mwh))),
+      tags$li("Regiones: ", length(unique(datos$region))),
+      tags$li("Registros: ", nrow(datos))
     )
   })
 

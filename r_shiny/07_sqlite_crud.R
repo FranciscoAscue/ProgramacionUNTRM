@@ -11,42 +11,30 @@ ui <- pagina(
   tabsetPanel(
     tabPanel("Dashboard", ui_dashboard(regiones)),
     tabPanel("Ingreso de datos",
-      div(class = "panel-consumo",
-        h2("Registros mensuales"),
-        div(class = "gestion-registros",
-          div(
-            fluidRow(
-              column(6, selectInput("region_registros", "Filtrar registros por región",
-                                   c("Todas las regiones" = "", regiones))),
-              column(6, numericInput("pagina_registros", "Página", 1, min = 1, step = 1))
-            ),
-            textOutput("total_registros"),
-            div(class = "tabla-scroll", uiOutput("tabla_registros"))
-          ),
-          div(
-            h3("Formulario"),
-            textOutput("modo"),
-            selectInput("region", "Región", c("Selecciona una región" = "", regiones)),
-            textInput("periodo", "Mes (AAAA-MM)", placeholder = "2025-01"),
-            textInput("mwh", "Consumo (MWh)"),
-            div(class = "botones",
-              actionButton("nuevo", "Nuevo"),
-              actionButton("guardar", "Guardar", class = "btn-primary")
-            ),
-            div(role = "status", textOutput("mensaje"))
-          )
-        )
-      )
+      h2("Formulario"),
+      textOutput("modo"),
+      selectInput("region", "Región", c("Selecciona una región" = "", regiones)),
+      textInput("periodo", "Mes (AAAA-MM)", placeholder = "2025-01"),
+      textInput("mwh", "Consumo (MWh)"),
+      actionButton("nuevo", "Nuevo"),
+      actionButton("guardar", "Guardar"),
+      div(role = "status", textOutput("mensaje")),
+      h2("Registros mensuales"),
+      selectInput("region_registros", "Filtrar registros por región",
+                  c("Todas las regiones" = "", regiones)),
+      numericInput("pagina_registros", "Página", 1, min = 1, step = 1),
+      textOutput("total_registros"),
+      uiOutput("tabla_registros")
     )
   )
 )
 
 # Cada botón envía un evento con el ID estable de la fila, no su posición.
 # El ID proviene de SQLite y se convierte a entero al crear el atributo JS.
-boton_fila <- function(accion, fila, clase) {
+boton_fila <- function(accion, fila) {
   evento <- sprintf("Shiny.setInputValue('accion_fila', {tipo: '%s', id: %d}, {priority: 'event'})",
                     accion, fila$id)
-  tags$button(type = "button", class = paste("btn btn-sm", clase), onclick = evento,
+  tags$button(type = "button", onclick = evento,
               `aria-label` = paste(accion, fila$region, "·", fila$periodo),
               accion)
 }
@@ -103,16 +91,16 @@ server <- function(input, output, session) {
     # renderUI permite incluir botones interactivos en la columna Acciones.
     datos <- pagina_registros()$filas
     if (!nrow(datos)) return(p("No hay filas para los filtros actuales."))
-    tags$table(class = "table table-hover",
+    tags$table(
       tags$thead(tags$tr(lapply(c("Región", "Mes", "Consumo (MWh)", "Acciones"),
                                  tags$th, scope = "col"))),
       tags$tbody(lapply(seq_len(nrow(datos)), function(i) {
         fila <- datos[i, ]
         tags$tr(tags$td(fila$region), tags$td(fila$periodo),
                 tags$td(numero(fila$consumo_mwh)),
-                tags$td(style = "white-space: nowrap",
-                  boton_fila("Editar", fila, "btn-default"), " ",
-                  boton_fila("Eliminar", fila, "btn-danger")
+                tags$td(
+                  boton_fila("Editar", fila), " ",
+                  boton_fila("Eliminar", fila)
                 ))
       }))
     )

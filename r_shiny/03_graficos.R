@@ -3,8 +3,10 @@ source("r_shiny/dashboard.R", encoding = "UTF-8")
 datos <- leer_consumo()
 ui <- pagina(
   h2("Cuatro vistas del consumo eléctrico"),
-  fluidRow(column(6, plotOutput("mensual")), column(6, plotOutput("regional"))),
-  fluidRow(column(6, plotOutput("anual")), column(6, plotOutput("calor")))
+  plotOutput("mensual"),
+  plotOutput("regional"),
+  plotOutput("anual"),
+  plotOutput("calor")
 )
 
 server <- function(input, output, session) {
