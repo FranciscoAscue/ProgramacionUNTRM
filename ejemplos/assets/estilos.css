@@ -1,0 +1,94 @@
+:root {
+    font-family: system-ui, sans-serif;
+    color: #182b3a;
+    background: #eef3f7;
+}
+
+* { box-sizing: border-box; }
+
+main {
+    width: min(1160px, 100% - 32px);
+    margin: 40px auto;
+}
+
+h1, h2 { line-height: 1.2; }
+h1 { margin-bottom: 8px; }
+h2 { margin: 0 0 18px; font-size: 1.25rem; }
+main > p { margin: 0 0 24px; color: #465d70; }
+
+.panel {
+    padding: 20px;
+    background: white;
+    border: 1px solid #d5e0e9;
+    border-radius: 12px;
+    min-width: 0;
+}
+
+label { display: block; font-weight: 600; margin-bottom: 6px; }
+.formulario label:not(:first-of-type) { margin-top: 14px; }
+.formulario input {
+    width: 100%;
+    font: inherit;
+    border: 1px solid #9eb0bf;
+    border-radius: 5px;
+    padding: 8px;
+}
+
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+button {
+    font: inherit;
+    font-weight: 600;
+    color: white;
+    background: #125d76;
+    border: 1px solid #125d76;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+button.secundario { color: #9d2424; background: white; border-color: #cfa2a2; }
+#mensaje { min-height: 1.5em; margin-bottom: 0; }
+
+.indicadores {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+}
+.indicador { background: #edf5f7; border-radius: 6px; padding: 10px; }
+.indicador strong { display: block; font-size: 1.3rem; }
+.tabla { max-height: 360px; overflow: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #dce5ec; }
+th { position: sticky; top: 0; background: #edf5f7; }
+
+@media (max-width: 700px) {
+    .panel { padding: 14px; }
+}
+
+.panel + .panel { margin-top: 16px; }
+.filtros, .graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.graficos { margin: 14px 0 24px; }
+.graficos > div { height: 360px; border: 1px solid #dce5ec; border-radius: 8px; overflow: hidden; }
+.formulario { max-width: 680px; }
+.modo { color: #465d70; font-weight: 600; }
+.acciones button.secundario { color: #125d76; border-color: #9eb0bf; }
+.acciones button.peligro { color: #9d2424; background: white; border-color: #cfa2a2; }
+
+@media (max-width: 700px) {
+    .filtros, .graficos { grid-template-columns: 1fr; }
+}
+
+.acciones-fila { white-space: nowrap; }
+.acciones-fila button { margin: 2px; }
+.acciones-fila > div { display: inline-block; }
+
+.gestion-registros {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+#tabla-registros th:last-child, #tabla-registros td:last-child { text-align: right; }
+@media (max-width: 780px) {
+    .gestion-registros { grid-template-columns: 1fr; }
+}
