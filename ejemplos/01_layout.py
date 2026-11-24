@@ -1,24 +1,31 @@
-"""Lección 1. Leer una tabla CSV y construir un layout con una figura fija."""
+"""Lección 1. Leer el CSV y colocar una figura y una tabla en el layout."""
 
+from pathlib import Path
+
+import pandas as pd
+import plotly.express as px
 from dash import Dash, dcc, html
 
-from dashboard import evolucion, tabla
-from datos import leer_consumo
+ruta_csv = Path(__file__).resolve().parents[1] / "datos" / "consumo_electrico.csv"
+datos = pd.read_csv(ruta_csv)
 
-# En esta lección preparamos los datos una sola vez, al arrancar.
-datos = leer_consumo().query("region == 'Lima'")
-app = Dash(__name__, title="Consumo eléctrico · Dash básico")
+# Cada punto suma los consumos de todas las regiones de la muestra.
+mensual = datos.groupby("periodo", as_index=False)["consumo_mwh"].sum()
+figura = px.line(mensual, x="periodo", y="consumo_mwh", markers=True,
+                 labels={"periodo": "Mes", "consumo_mwh": "Consumo (MWh)"})
 
-# Cada objeto html.* representa un elemento del árbol de la página.
-# dcc.Graph recibe una figura de Plotly y aporta zoom y datos al pasar el ratón.
+app = Dash(__name__)
 app.layout = html.Main([
-    html.H1("Consumo eléctrico mensual en Lima"),
-    html.P("Datos ficticios del Perú · MWh"),
-    html.Section(dcc.Graph(figure=evolucion(datos)), className="panel"),
-    html.Section([
-        html.H2("Primeras 12 filas de Lima"),
-        html.Div(tabla(datos.head(12)), className="tabla"),
-    ], className="panel"),
+    html.H1("Consumo eléctrico mensual"),
+    dcc.Graph(figure=figura),
+    html.H2("Primeras 12 filas del CSV"),
+    html.Table([
+        html.Thead(html.Tr([html.Th(columna) for columna in datos.columns])),
+        html.Tbody([
+            html.Tr([html.Td(valor) for valor in fila])
+            for fila in datos.head(12).itertuples(index=False, name=None)
+        ]),
+    ]),
 ])
 
 if __name__ == "__main__":

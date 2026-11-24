@@ -10,7 +10,7 @@ Dos recorridos de siete lecciones sobre el mismo [CSV de consumo eléctrico](dat
 | 1. Tabla, layout y gráfico inicial | [Python](ejemplos/01_layout.py) | [R](r_shiny/01_layout.R) |
 | 2. Un selector y una salida reactiva | [Python](ejemplos/02_callback.py) | [R](r_shiny/02_reactividad.R) |
 | 3. Agregaciones y cuatro gráficos | [Python](ejemplos/03_graficos.py) | [R](r_shiny/03_graficos.R) |
-| 4. Formulario y validación al pulsar un botón | [Python](ejemplos/04_formulario.py) | [R](r_shiny/04_formulario.R) |
+| 4. Formulario y lectura al pulsar un botón | [Python](ejemplos/04_formulario.py) | [R](r_shiny/04_formulario.R) |
 | 5. Dashboard con filtros y múltiples salidas | [Python](ejemplos/05_dashboard.py) | [R](r_shiny/05_dashboard.R) |
 | 6. Consultas parametrizadas en SQLite | [Python](ejemplos/06_sqlite_lectura.py) | [R](r_shiny/06_sqlite_lectura.R) |
 | 7. CRUD con pestañas y acciones por fila | [Python](ejemplos/07_sqlite_crud.py) | [R](r_shiny/07_sqlite_crud.R) |

@@ -1,52 +1,144 @@
 # Tutorial de Dash con Python
 
-Construirás una app de consumo eléctrico mensual en siete lecciones. Todas usan el [CSV compartido](datos/consumo_electrico.csv), con valores ficticios en MWh para 12 regiones del Perú. Ejecuta los comandos desde la raíz del proyecto y detén cada servidor con Ctrl+C antes de abrir el siguiente. Usa `conda activate dash` y abre `http://127.0.0.1:8050`.
+Siete lecciones sobre el [CSV de consumo eléctrico](datos/consumo_electrico.csv). Contiene datos mensuales ficticios de 12 regiones del Perú. Cada ejemplo tiene su propio código de carga, layout y callbacks. Ejecuta los comandos desde la raíz del proyecto con `conda activate dash`, abre `http://127.0.0.1:8050` y detén el servidor con Ctrl+C antes de iniciar otra lección.
 
-## 1. Cargar la tabla y construir el layout
+## 1. Leer el CSV y mostrar un gráfico
 
-Ejecuta `python -B ejemplos/01_layout.py`. Abre [01_layout.py](ejemplos/01_layout.py) y sigue la lectura del CSV, el filtro fijo de Lima y la construcción de `app.layout`. Los elementos `html.*` organizan la página y `dcc.Graph` recibe una figura de Plotly.
+Ejecuta `python -B ejemplos/01_layout.py`. Este es el bloque de carga y preparación del gráfico en [01_layout.py](ejemplos/01_layout.py).
 
-**Práctica.** Cambia Lima por Cusco en el filtro y en el título. Identifica qué código se ejecuta al arrancar.
+```python
+ruta_csv = Path(__file__).resolve().parents[1] / "datos" / "consumo_electrico.csv"
+datos = pd.read_csv(ruta_csv)
 
-## 2. Conectar un selector a un gráfico
+mensual = datos.groupby("periodo", as_index=False)["consumo_mwh"].sum()
+figura = px.line(mensual, x="periodo", y="consumo_mwh", markers=True,
+                 labels={"periodo": "Mes", "consumo_mwh": "Consumo (MWh)"})
+```
 
-Ejecuta `python -B ejemplos/02_callback.py`. En [02_callback.py](ejemplos/02_callback.py), `Input("region", "value")` observa el selector y `Output("grafico", "figure")` recibe el valor devuelto. Los identificadores del decorador coinciden con los del layout. Dash ejecuta el callback con el valor inicial y cada vez que cambia la región.
+`read_csv` carga todas las filas. `groupby` suma el consumo de las regiones para cada mes. En el layout, `dcc.Graph(figure=figura)` muestra el resultado y `datos.head(12)` limita solo la vista previa de la tabla.
 
-**Práctica.** Cambia la región inicial a Piura. Explica qué recibe el callback cuando eliges Arequipa.
+**Práctica.** Cambia 12 por 6 y observa cuál de las dos vistas cambia.
 
-## 3. Preparar cuatro gráficos
+## 2. Conectar un selector al gráfico
 
-Ejecuta `python -B ejemplos/03_graficos.py`. Revisa [03_graficos.py](ejemplos/03_graficos.py) y las funciones de [dashboard.py](ejemplos/dashboard.py). `groupby().sum()` agrega regiones por mes, meses por región o meses por año. `pivot()` convierte la tabla en una matriz para el mapa de calor. Contrasta las figuras creadas con Plotly Express y la traza `go.Heatmap`.
+Ejecuta `python -B ejemplos/02_callback.py`. En [02_callback.py](ejemplos/02_callback.py), el selector empieza vacío. El filtro se aplica dentro del callback al elegir una región.
 
-**Práctica.** Filtra el CSV a dos regiones antes de llamar a `graficos()`. Predice qué barras y qué filas del mapa de calor aparecerán.
+```python
+@app.callback(Output("grafico", "figure"), Input("region", "value"))
+def actualizar(region):
+    visibles = datos[datos.region == region] if region else datos
+    mensual = visibles.groupby("periodo", as_index=False)["consumo_mwh"].sum()
+    return px.line(mensual, x="periodo", y="consumo_mwh", markers=True,
+                   labels={"periodo": "Mes", "consumo_mwh": "Consumo (MWh)"})
+```
 
-## 4. Leer y validar un formulario
+`Input` escucha el valor de `region`. `Output` coloca la figura devuelta en el gráfico que tiene ID `grafico`.
 
-Ejecuta `python -B ejemplos/04_formulario.py`. En [04_formulario.py](ejemplos/04_formulario.py), el clic es el `Input` y los valores de los campos son `State`. Escribir en un campo no ejecuta la validación hasta pulsar **Validar**. `prevent_initial_call=True` evita la ejecución inicial del callback.
+**Práctica.** Selecciona Piura y después borra la selección. Compara los valores mensuales.
 
-**Práctica.** Prueba `2025-13`, un consumo negativo y un cero. Revisa cómo [datos.py](ejemplos/datos.py) convierte el texto a un entero después de validarlo.
+## 3. Construir cuatro gráficos
 
-## 5. Unificar filtros, indicadores, gráficos y tabla
+Ejecuta `python -B ejemplos/03_graficos.py`. En [03_graficos.py](ejemplos/03_graficos.py), cada agregación prepara una vista distinta. La matriz se usa para el mapa de calor.
 
-Ejecuta `python -B ejemplos/05_dashboard.py`. En [05_dashboard.py](ejemplos/05_dashboard.py), el callback recibe dos filtros y produce los indicadores, cuatro figuras y una tabla. El orden del resultado coincide con el de las salidas del decorador. Todas las salidas usan el mismo subconjunto de datos.
+```python
+mensual = datos.groupby("periodo", as_index=False)["consumo_mwh"].sum()
+regional = datos.groupby("region", as_index=False)["consumo_mwh"].sum()
+con_anio = datos.assign(anio=datos.periodo.str[:4])
+anual = con_anio.groupby("anio", as_index=False)["consumo_mwh"].sum()
+matriz = datos.pivot(index="region", columns="periodo", values="consumo_mwh")
+```
 
-**Práctica.** Filtra por Áncash y 2023. Comprueba que los 12 meses de la tabla coinciden con el indicador de registros. Quita el filtro de región y explica cómo cambian ambos.
+La línea usa `mensual`, las barras usan `regional` y `anual`, y cada celda del mapa representa una combinación de región y mes.
 
-## 6. Obtener datos con una consulta SQLite
+**Práctica.** Cambia `sum()` por `mean()` en el cálculo regional y ajusta el título de sus barras.
 
-Ejecuta `python -B ejemplos/06_sqlite_lectura.py`. En [06_sqlite_lectura.py](ejemplos/06_sqlite_lectura.py), SQLite carga el CSV en memoria. `WHERE region = ?` aplica el filtro con un parámetro. `GROUP BY` calcula los totales anuales antes de que Plotly construya la figura. Cerrar la conexión elimina la base temporal.
+## 4. Leer los campos al pulsar un botón
 
-**Práctica.** Compara un total anual con el de la lección 5 usando la misma región y año. Reemplaza `SUM` por `AVG` y actualiza las etiquetas para representar el promedio mensual.
+Ejecuta `python -B ejemplos/04_formulario.py`. Este callback de [04_formulario.py](ejemplos/04_formulario.py) muestra una vista previa del registro.
 
-## 7. Construir un CRUD persistente con acciones por fila
+```python
+@app.callback(
+    Output("mensaje", "children"), Input("previsualizar", "n_clicks"),
+    State("region", "value"), State("periodo", "value"), State("mwh", "value"),
+    prevent_initial_call=True,
+)
+def revisar(_clics, region, periodo, mwh):
+    if not region or not periodo or not mwh:
+        return "Completa los tres campos."
+    return f"{region} · {periodo} · {mwh} MWh."
+```
 
-Ejecuta `python -B ejemplos/07_sqlite_crud.py`. Abre [07_sqlite_crud.py](ejemplos/07_sqlite_crud.py) y [sqlite_consumo.py](ejemplos/sqlite_consumo.py). Las pestañas **Dashboard** e **Ingreso de datos** conservan sus componentes al cambiar de vista.
+El botón dispara el callback. Los campos declarados como `State` entregan sus valores en ese momento. `prevent_initial_call` espera al primer clic.
 
-1. **Nuevo** prepara el formulario para un `INSERT`. **Editar**, a la derecha de una fila, carga sus campos usando su ID y prepara un `UPDATE`.
-2. Cada botón de fila tiene un ID de diccionario con la acción y la clave primaria. `ALL` escucha los botones generados y `ctx.triggered_id` identifica la fila pulsada, incluso si cambia el filtro o la página.
-3. **Eliminar**, en la misma columna, requiere confirmación antes del `DELETE`. `dcc.Store` guarda el ID en edición y otro Store guarda la revisión que activa la recarga de datos después de una escritura exitosa.
-4. SQLite impide duplicados de región y mes. El dashboard y la tabla administrativa vuelven a consultar la base.
+**Práctica.** Previsualiza Piura, `2025-01` y `0`. Cambia el consumo y observa cuándo se actualiza el mensaje.
 
-**Práctica.** Crea Piura, `2025-01`, con 190000 MWh. Localiza la fila al inicio de la tabla, pulsa **Editar** y guarda 195000. Reinicia la app y comprueba el cambio. Pulsa **Eliminar**, cancela una vez y luego confirma. Revisa el dashboard después de cada escritura.
+## 5. Actualizar varias salidas con dos filtros
 
-La base predeterminada es `ejemplos/consumo_dash.sqlite3`. Para repetir la práctica desde la semilla, usa otra ruta mediante `CONSUMO_DB`. Consulta el [índice general](README.md) o el [tutorial equivalente de Shiny](TUTORIAL_SHINY.md).
+Ejecuta `python -B ejemplos/05_dashboard.py`. En [05_dashboard.py](ejemplos/05_dashboard.py), los filtros empiezan vacíos. El callback crea un conjunto de filas común para la tabla, los indicadores y los cuatro gráficos.
+
+```python
+visibles = datos
+if region:
+    visibles = visibles[visibles.region == region]
+if anio:
+    visibles = visibles[visibles.periodo.str.startswith(anio)]
+```
+
+El orden del `return` es el mismo que el de los seis `Output`.
+
+```python
+return indicadores, linea, barras, por_anio, calor, tabla
+```
+
+**Práctica.** Filtra por Áncash y 2023. Comprueba que el indicador y la tabla muestran los mismos 12 registros.
+
+## 6. Consultar SQLite desde un callback
+
+Ejecuta `python -B ejemplos/06_sqlite_lectura.py`. En [06_sqlite_lectura.py](ejemplos/06_sqlite_lectura.py), el callback importa el CSV a SQLite en memoria y consulta el total por año.
+
+```python
+with closing(sqlite3.connect(":memory:")) as con:
+    datos.to_sql("consumo", con, index=False)
+    resumen = pd.read_sql_query("""
+        SELECT substr(periodo, 1, 4) AS anio, SUM(consumo_mwh) AS total_mwh
+        FROM consumo WHERE (? IS NULL OR region = ?)
+        GROUP BY anio ORDER BY anio
+    """, con, params=(region, region))
+```
+
+Cada `?` recibe un valor de `params`. Con el selector vacío, la consulta incluye todas las regiones. La base temporal desaparece al cerrar la conexión.
+
+**Práctica.** Compara el total de un año con la barra de la misma región y año en la lección anterior.
+
+## 7. Editar y borrar filas con SQLite
+
+Ejecuta `python -B ejemplos/07_sqlite_crud.py`. En [07_sqlite_crud.py](ejemplos/07_sqlite_crud.py), las pestañas separan el dashboard del formulario y su tabla. Cada botón de fila incluye la clave primaria de SQLite.
+
+```python
+Input({"accion": "editar", "id": ALL}, "n_clicks"),
+Input({"accion": "eliminar", "id": ALL}, "submit_n_clicks"),
+State("registro", "data"),
+```
+
+`ALL` escucha los botones de todas las filas visibles. `ctx.triggered_id` indica qué fila disparó el callback. **Editar** consulta sus campos y guarda su ID en `dcc.Store`. **Nuevo** deja el ID vacío. Al guardar, esa diferencia determina qué sentencia SQL se ejecuta.
+
+```python
+if registro_id is None:
+    con.execute(
+        "INSERT INTO consumo (region, periodo, consumo_mwh) VALUES (?, ?, ?)",
+        (region, periodo, int(mwh)),
+    )
+else:
+    cursor = con.execute(
+        "UPDATE consumo SET region = ?, periodo = ?, consumo_mwh = ? WHERE id = ?",
+        (region, periodo, int(mwh), registro_id),
+    )
+    if cursor.rowcount == 0:
+        raise LookupError("El registro ya no existe.")
+```
+
+**Eliminar** requiere confirmación. Tras guardar o borrar, cambia la revisión en `dcc.Store` y ambas vistas vuelven a consultar SQLite. La base predeterminada es `ejemplos/consumo_dash.sqlite3`. Usa `CONSUMO_DB` con otra ruta para repetir la práctica desde el CSV.
+
+**Práctica.** Crea Piura, `2025-01`, con 190000 MWh. Edita la fila a 195000, reinicia la app y comprueba el cambio. Cancela un intento de borrado y confirma el siguiente.
+
+[Índice general](README.md) · [Tutorial de Shiny](TUTORIAL_SHINY.md)
